@@ -1,6 +1,6 @@
 export async function onRequest(context) {
-  const repeaterStore = context.env.REPEATERS;
-  const repeaters = await repeaterStore.list();
+  const store = context.env.REPEATERS;
+  const repeaters = await store.list();
 
   return new Response(JSON.stringify(repeaters));
 }

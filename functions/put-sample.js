@@ -1,4 +1,4 @@
-import { parseLocation, ageInDays } from '../content/shared.js'
+import { parseLocation, ageInDays, sampleKey } from '../content/shared.js'
 
 export async function onRequest(context) {
   const request = context.request;
@@ -9,7 +9,7 @@ export async function onRequest(context) {
   const time = Date.now();
   const path = data.path ?? [];
 
-  const key = `${lat.toFixed(4)}|${lon.toFixed(4)}`;
+  const key = sampleKey(lat, lon);
   const metadata = { time: time, lat: lat, lon: lon, path: path };
   const resp = await store.getWithMetadata(key);
 

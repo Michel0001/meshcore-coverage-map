@@ -1,11 +1,50 @@
 import * as util from '../content/shared.js';
 
-function overlaps(a, b) {
-  const dist = util.haversineMiles(a, b);
-  return dist <= 0.25;  // Consider anything under 1/4 mile overlapped.
+async function cleanCoverage(context) {
+  const store = context.env.COVERAGE;
+  let cursor = null;
+
+  do {
+    const coverage = await store.list({ cursor: cursor });
+    cursor = coverage.cursor ?? null;
+
+    for (const key of coverage.keys) {
+      try {
+        const values = await store.get(key.name, "json");
+        const groups = Object.groupBy(values, ({ time }) => time);
+
+        // If there are dupes, there will be fewer groups than values.
+        if (Object.keys(groups).length === values.length) {
+          //console.log(`${key.name} has no dupes.`);
+          continue;
+        }
+
+        // Take the first item from each group.
+        const newValue = Object.entries(groups).map(
+          ([k, v]) => {
+            return { time: k, path: v[0].path };
+          });
+
+        const newValueJson = JSON.stringify(newValue)
+        console.log(`Putting ${key.name} ${newValueJson}`);
+        await store.put(key.name, newValueJson, {
+          metadata: key.metadata
+        });
+
+      } catch (e) {
+        console.log(`Error handling ${key}: ${e}`);
+      }
+    }
+  } while (cursor !== null);
 }
 
 async function cleanSamples(context) {
+  // This should mostly be done by consolidate.js
+}
+
+function overlaps(a, b) {
+  const dist = util.haversineMiles(a, b);
+  return dist <= 0.25;  // Consider anything under 1/4 mile overlapped.
 }
 
 function groupByOverlap(items) {
@@ -36,7 +75,7 @@ function groupByOverlap(items) {
 
 async function deduplicateGroup(group, store) {
   if (group.items.length === 1) {
-    console.log(`Group ${group.id} ${group.loc} only has 1 item.`);
+    //console.log(`Group ${group.id} ${group.loc} only has 1 item.`);
     return;
   }
 
@@ -52,7 +91,7 @@ async function deduplicateGroup(group, store) {
 
   // Delete all the older items.
   await Promise.all(itemsToDelete.map(async i => {
-    console.log(`Deleting duplicate ${i.name}`);
+    console.log(`Deleting duplicate of [${group.id} ${group.loc}] ${i.name}`);
     await store.delete(i.name);
   }));
 }
@@ -81,10 +120,7 @@ async function cleanRepeaters(context) {
 
   // Compute overlap groups and deduplicate.
   await Promise.all(indexed.entries().map(async ([key, val]) => {
-    if (val.length === 1) {
-      console.log(`${key} has no duplicates.`);
-    } else {
-      console.log(`${key} has duplicates.`);
+    if (val.length >= 1) {
       const groups = groupByOverlap(val);
       await Promise.all(groups.map(async g => {
         await deduplicateGroup(g, store);
@@ -94,6 +130,7 @@ async function cleanRepeaters(context) {
 }
 
 export async function onRequest(context) {
+  await cleanCoverage(context);
   await cleanSamples(context);
   await cleanRepeaters(context);
 

@@ -10,6 +10,7 @@ async function mergeCoverage(key, samples, store) {
     heard: entry?.metadata?.heard ?? 0,
     lost: entry?.metadata?.lost ?? 0,
     lastHeard: entry?.metadata?.lastHeard ?? 0,
+    updated: Date.now(),
     hitRepeaters: entry?.metadata?.hitRepeaters ?? []
   };
 

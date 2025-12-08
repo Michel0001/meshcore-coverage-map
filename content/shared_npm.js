@@ -32,10 +32,10 @@ export function haversineMiles(a, b) {
 }
 
 // The center position to use for point filtering.
-const centerPos = [47.8033, -122.0427];
-const maxDistanceMiles = 300;
+export const centerPos = [47.7776, -122.4247];
+export const maxDistanceMiles = 60;
 
-function isValidLocation(p) {
+export function isValidLocation(p) {
   const [lat, lon] = p;
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     return false;
@@ -84,6 +84,17 @@ export function pushMap(map, key, value) {
 export function sigmoid(value, scale = 0.25, center = 0) {
   const g = scale * (value - center)
   return 1 / (1 + Math.exp(-g));
+}
+
+// About 1 minute accuracy.
+const TIME_TRUNCATION = 100000;
+
+export function truncateTime(time) {
+  return Math.round(time / TIME_TRUNCATION);
+}
+
+export function fromTruncatedTime(truncatedTime) {
+  return truncatedTime * TIME_TRUNCATION;
 }
 
 export async function retry(func, maxRetries = 5, retryDelayMs = 500) {

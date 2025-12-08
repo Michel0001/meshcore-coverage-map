@@ -1,3 +1,7 @@
+// Gets all samples, coverage, and repeaters for the map.
+// Lots of data to send back, so fields are minimized.
+import * as util from '../content/shared.js';
+
 export async function onRequest(context) {
   const coverageStore = context.env.COVERAGE;
   const sampleStore = context.env.SAMPLES;
@@ -13,13 +17,20 @@ export async function onRequest(context) {
     const coverageList = await coverageStore.list({ cursor: cursor });
     cursor = coverageList.cursor ?? null;
     coverageList.keys.forEach(c => {
-      responseData.coverage.push({
-        hash: c.name,
-        heard: c.metadata.heard ?? 0,
+      const item = {
+        id: c.name,
+        rcv: c.metadata.heard ?? 0,
         lost: c.metadata.lost ?? 0,
-        lastHeard: c.metadata.lastHeard ?? 0,
-        hitRepeaters: c.metadata.hitRepeaters ?? []
-      });
+        time: util.truncateTime(c.metadata.lastHeard ?? 0),
+      };
+
+      // Don't send empty lists.
+      const repeaters = c.metadata.hitRepeaters ?? [];
+      if (repeaters.length > 0) {
+        item.rptr = repeaters
+      };
+
+      responseData.coverage.push(item);
     });
   } while (cursor !== null)
 
@@ -27,11 +38,18 @@ export async function onRequest(context) {
     const samplesList = await sampleStore.list({ cursor: cursor });
     cursor = samplesList.cursor ?? null;
     samplesList.keys.forEach(s => {
-      responseData.samples.push({
-        hash: s.name,
-        time: s.metadata.time,
-        path: s.metadata.path,
-      });
+      const item = {
+        id: s.name,
+        time: util.truncateTime(s.metadata.time ?? 0),
+      };
+
+      // Don't send empty lists.
+      const path = s.metadata.path ?? [];
+      if (path.length > 0) {
+        item.path = path
+      };
+
+      responseData.samples.push(item);
     });
   } while (cursor !== null)
 
@@ -39,7 +57,7 @@ export async function onRequest(context) {
     const repeatersList = await repeaterStore.list({ cursor: cursor });
     repeatersList.keys.forEach(r => {
       responseData.repeaters.push({
-        time: r.metadata.time ?? 0,
+        time: util.truncateTime(r.metadata.time ?? 0),
         id: r.metadata.id,
         name: r.metadata.name,
         lat: r.metadata.lat,

@@ -352,8 +352,8 @@ function haversineMiles(a, b) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
-var centerPos = [47.8033, -122.0427];
-var maxDistanceMiles = 300;
+var centerPos = [47.7776, -122.4247];
+var maxDistanceMiles = 60;
 function isValidLocation(p) {
   const [lat, lon] = p;
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
@@ -392,6 +392,13 @@ function sigmoid(value, scale = 0.25, center = 0) {
   const g = scale * (value - center);
   return 1 / (1 + Math.exp(-g));
 }
+var TIME_TRUNCATION = 1e5;
+function truncateTime(time) {
+  return Math.round(time / TIME_TRUNCATION);
+}
+function fromTruncatedTime(truncatedTime) {
+  return truncatedTime * TIME_TRUNCATION;
+}
 async function retry(func, maxRetries = 5, retryDelayMs = 500) {
   let attempt = 0;
   const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -412,12 +419,17 @@ async function retry(func, maxRetries = 5, retryDelayMs = 500) {
 var export_geo = import_ngeohash.default;
 export {
   ageInDays,
+  centerPos,
+  fromTruncatedTime,
   export_geo as geo,
   haversineMiles,
+  isValidLocation,
+  maxDistanceMiles,
   parseLocation,
   posFromHash,
   pushMap,
   retry,
   sampleKey,
-  sigmoid
+  sigmoid,
+  truncateTime
 };

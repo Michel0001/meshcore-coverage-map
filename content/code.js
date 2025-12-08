@@ -1,10 +1,13 @@
 import {
   ageInDays,
+  centerPos,
   geo,
   haversineMiles,
+  maxDistanceMiles,
   posFromHash,
   pushMap,
   sigmoid,
+  fromTruncatedTime,
 } from './shared.js'
 
 // Global Init
@@ -95,6 +98,14 @@ mapControl.onAdd = m => {
 
 mapControl.addTo(map);
 
+// Max radius circle.
+const hundredMileCircle = L.circle(centerPos, {
+    radius: maxDistanceMiles * 1609.34, // meters in mile.
+    color: '#a13139',
+    weight: 3,
+    fill: false
+  }).addTo(map);
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll('&', '&amp;')
@@ -103,11 +114,11 @@ function escapeHtml(s) {
 }
 
 function coverageMarker(coverage) {
-  const [minLat, minLon, maxLat, maxLon] = geo.decode_bbox(coverage.hash);
-  const color = coverage.heard > 0 ? '#398821' : '#E04748';
-  const totalSamples = coverage.heard + coverage.lost;
-  const heardRatio = coverage.heard / totalSamples;
-  const date = new Date(coverage.lastHeard);
+  const [minLat, minLon, maxLat, maxLon] = geo.decode_bbox(coverage.id);
+  const color = coverage.rcv > 0 ? '#398821' : '#E04748';
+  const totalSamples = coverage.rcv + coverage.lost;
+  const heardRatio = coverage.rcv / totalSamples;
+  const date = new Date(fromTruncatedTime(coverage.time));
   const opacity = 0.75 * sigmoid(totalSamples, 1.2, 2) * (heardRatio > 0 ? heardRatio : 1);
   const style = {
     color: color,
@@ -116,10 +127,10 @@ function coverageMarker(coverage) {
   };
   const rect = L.rectangle([[minLat, minLon], [maxLat, maxLon]], style);
   const details = `
-    <strong>${coverage.hash}</strong><br/>
-    Heard: ${coverage.heard} Lost: ${coverage.lost} (${(100 * heardRatio).toFixed(0)}%)<br/>
+    <strong>${coverage.id}</strong><br/>
+    Heard: ${coverage.rcv} Lost: ${coverage.lost} (${(100 * heardRatio).toFixed(0)}%)<br/>
     Updated: ${date.toLocaleString()}
-    ${coverage.hitRepeaters.size === 0 ? '' : '<br/>Repeaters: ' + coverage.hitRepeaters.join(',')}`;
+    ${coverage.rptr.size === 0 ? '' : '<br/>Repeaters: ' + coverage.rptr.join(',')}`;
 
   rect.coverage = coverage;
   rect.bindPopup(details, { maxWidth: 320 });
@@ -136,23 +147,25 @@ function coverageMarker(coverage) {
 }
 
 function sampleMarker(s) {
-  const [lat, lon] = posFromHash(s.hash);
-  const color = s.path.length > 0 ? '#07ac07' : '#e96767';
+  const [lat, lon] = posFromHash(s.id);
+  const path = s.path ?? [];
+  const color = path.length > 0 ? '#07ac07' : '#e96767';
   const style = { radius: 5, weight: 1, color: color, fillOpacity: .8 };
   const marker = L.circleMarker([lat, lon], style);
-  const date = new Date(s.time);
+  const date = new Date(fromTruncatedTime(s.time));
   const details = `
     ${lat.toFixed(4)}, ${lon.toFixed(4)}<br/>
     ${date.toLocaleString()}
-    ${s.path.length === 0 ? '' : '<br/>Hit: ' + s.path.join(',')}`;
+    ${path.length === 0 ? '' : '<br/>Hit: ' + path.join(',')}`;
   marker.bindPopup(details, { maxWidth: 320 });
   marker.on('add', () => updateSampleMarkerVisibility(marker));
   return marker;
 }
 
 function repeaterMarker(r) {
-  const stale = ageInDays(r.time) > 2;
-  const dead = ageInDays(r.time) > 8;
+  const time = fromTruncatedTime(r.time);
+  const stale = ageInDays(time) > 2;
+  const dead = ageInDays(time) > 8;
   const ageClass = (dead ? "dead" : (stale ? "stale" : ""));
   const icon = L.divIcon({
     className: '', // Don't use default Leaflet style.
@@ -163,7 +176,7 @@ function repeaterMarker(r) {
   const details = [
     `<strong>${escapeHtml(r.name)} [${r.id}]</strong>`,
     `${r.lat.toFixed(4)}, ${r.lon.toFixed(4)} · <em>${(r.elev).toFixed(0)}m</em>`,
-    `${new Date(r.time).toLocaleString()}`
+    `${new Date(time).toLocaleString()}`
   ].join('<br/>');
   const marker = L.marker([r.lat, r.lon], { icon: icon });
 
@@ -329,37 +342,39 @@ function buildIndexes(nodes) {
 
   // Index coverage items.
   nodes.coverage.forEach(c => {
-    const { latitude: lat, longitude: lon } = geo.decode(c.hash);
+    const { latitude: lat, longitude: lon } = geo.decode(c.id);
     c.pos = [lat, lon];
-    hashToCoverage.set(c.hash, c);
+    if (c.rptr === undefined) c.rptr = [];
+    hashToCoverage.set(c.id, c);
   });
 
   // Add samples to coverage items.
   // TODO: shared helper for coverage ctor.
   nodes.samples.forEach(s => {
-    const key = s.hash.substring(0, 6);
+    const key = s.id.substring(0, 6);
     let coverage = hashToCoverage.get(key);
     if (!coverage) {
       const { latitude: lat, longitude: lon } = geo.decode(key);
       coverage = {
-        hash: key,
+        id: key,
         pos: [lat, lon],
-        heard: 0,
+        rcv: 0,
         lost: 0,
-        lastHeard: 0,
-        hitRepeaters: [],
+        time: 0,
+        rptr: [],
       };
       hashToCoverage.set(key, coverage);
     }
 
-    const heard = s.path.length > 0;
-    coverage.heard += heard ? 1 : 0;
+    const path = s.path ?? [];
+    const heard = path > 0;
+    coverage.rcv += heard ? 1 : 0;
     coverage.lost += !heard ? 1 : 0;
-    coverage.lastHeard = Math.max(coverage.lastHeard, s.time);
-    s.path.forEach(p => {
+    coverage.time = Math.max(coverage.time, s.time);
+    path.forEach(p => {
       const lp = p.toLowerCase();
-      if (!coverage.hitRepeaters.includes(lp))
-        coverage.hitRepeaters.push(lp);
+      if (!coverage.rptr.includes(lp))
+        coverage.rptr.push(lp);
     });
   });
 
@@ -372,7 +387,7 @@ function buildIndexes(nodes) {
 
   // Build connections.
   hashToCoverage.entries().forEach(([key, coverage]) => {
-    coverage.hitRepeaters.forEach(r => {
+    coverage.rptr.forEach(r => {
       const candidateRepeaters = idToRepeaters.get(r);
       if (candidateRepeaters === undefined)
         return;

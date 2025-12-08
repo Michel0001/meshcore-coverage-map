@@ -162,9 +162,21 @@ async function cleanRepeaters(context, result) {
 export async function onRequest(context) {
   const result = {};
 
-  await cleanCoverage(context, result);
-  await cleanSamples(context, result);
-  await cleanRepeaters(context, result);
+  const url = new URL(context.request.url);
+  const op = url.searchParams.get('op');
+
+  switch (op) {
+    case "coverage":
+      await cleanCoverage(context, result);
+      break;
+
+    case "samples":
+      await cleanSamples(context, result);
+      break;
+
+    case "repeaters":
+      await cleanRepeaters(context, result);
+  }
 
   return new Response(JSON.stringify(result));
 }

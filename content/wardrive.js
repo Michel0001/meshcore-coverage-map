@@ -1,5 +1,5 @@
 import { WebBleConnection, Constants } from "/content/mc/index.js";
-import { haversineMiles } from "/content/shared.js";
+import { isValidLocation, haversineMiles } from "/content/shared.js";
 
 // --- DOM helpers ---
 const $ = id => document.getElementById(id);
@@ -57,11 +57,11 @@ const state = {
 
 // --- Utility functions ---
 function getIntervalMinutes() {
-  return parseFloat(intervalSelect.value || "0");
+  return parseFloat(intervalSelect.value || "0.5");
 }
 
 function getMinDistanceMiles() {
-  return parseFloat(minDistanceSelect.value || "0");
+  return parseFloat(minDistanceSelect.value || "0.5");
 }
 
 function formatIsoLocal(iso) {
@@ -193,6 +193,13 @@ function getCurrentPosition() {
       }
     );
   });
+}
+
+async function assertInRange() {
+  const pos = await getCurrentPosition();
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
+  return isValidLocation([lat, lon]);
 }
 
 // --- WakeLock helpers ---
@@ -462,6 +469,11 @@ function startAutoMode() {
 
 // --- Connection handling ---
 async function handleConnect() {
+  if (await assertInRange() === false) {
+    alert("Wardrive not supported in this area.");
+    return;
+  }
+
   if (state.connection) {
     return;
   }
@@ -607,8 +619,12 @@ if ('bluetooth' in navigator) {
 }
 
 export async function onLoad() {
-  loadLog();
-  loadIgnoredId();
-  updateLastSampleInfo();
-  updateAutoButton();
+  try {
+    loadLog();
+    loadIgnoredId();
+    updateLastSampleInfo();
+    updateAutoButton();
+  } catch (e) {
+    alert(e);
+  }
 }

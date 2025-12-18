@@ -143,15 +143,6 @@ npm start
 
 The server will start on port 3000 (or the port specified in `.env`).
 
-## Data Migration
-
-If you have existing data from the Cloudflare service, you can migrate it using the migration script:
-
-```bash
-node scripts/migrate-data.js --from-slurp
-```
-
-This will fetch data from the live Cloudflare service and import it into your PostgreSQL database.
 
 ## API Endpoints
 
@@ -221,14 +212,6 @@ pm2 startup
 3. Set up a reverse proxy (nginx) - **Recommended for production** (see AWS EC2 Deployment section)
 4. Configure SSL/TLS certificates - **Required for HTTPS** (see AWS EC2 Deployment section)
 5. Set up database backups
-
-## Differences from Cloudflare Version
-
-- **Database**: Uses PostgreSQL instead of Cloudflare KV
-- **Concurrency**: Proper ACID transactions handle concurrent writes
-- **No Rate Limits**: No 1 write/key/second limitation
-- **Better Queries**: SQL queries are more efficient than KV list operations
-- **Transactions**: Consolidate and cleanup operations use database transactions
 
 ## Location Validation
 

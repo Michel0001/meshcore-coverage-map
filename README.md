@@ -162,11 +162,11 @@ npm run dev
    sudo nano /etc/nginx/sites-available/meshmap
    ```
    
-   **Important:** Update these paths in the config file:
+   **Important:** Update in the config file:
    - Change `server_name your-domain.com` to your actual domain (or `_` for any domain)
-   - Update the static file paths to match your deployment:
-     - `/home/ubuntu/meshcore-coverage-map/server/public/content/` (in `/content/` location block)
-     - `/home/ubuntu/meshcore-coverage-map/server/public` (in static files location block)
+   - Update SSL certificate paths if certbot didn't auto-configure them
+   - **For Docker deployments:** The config is already set to proxy everything to Express (static files included)
+   - **For non-Docker:** Uncomment the static file location blocks and update paths
    
    Then enable the site:
    ```bash

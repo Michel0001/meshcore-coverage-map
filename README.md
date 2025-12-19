@@ -157,10 +157,29 @@ npm run dev
 
 2. **Configure Nginx:**
    ```bash
-   sudo cp server/nginx/meshmap.conf /etc/nginx/sites-available/meshmap
-   sudo nano /etc/nginx/sites-available/meshmap  # Edit server_name
+   cd ~/meshcore-coverage-map/server
+   sudo cp nginx/meshmap.conf /etc/nginx/sites-available/meshmap
+   sudo nano /etc/nginx/sites-available/meshmap
+   ```
+   
+   **Important:** Update these paths in the config file:
+   - Change `server_name your-domain.com` to your actual domain (or `_` for any domain)
+   - Update the static file paths to match your deployment:
+     - `/home/ubuntu/meshcore-coverage-map/server/public/content/` (in `/content/` location block)
+     - `/home/ubuntu/meshcore-coverage-map/server/public` (in static files location block)
+   
+   Then enable the site:
+   ```bash
+   # Disable default nginx site (important!)
+   sudo rm /etc/nginx/sites-enabled/default
+   
+   # Enable meshmap site
    sudo ln -s /etc/nginx/sites-available/meshmap /etc/nginx/sites-enabled/
+   
+   # Test configuration
    sudo nginx -t
+   
+   # Reload nginx
    sudo systemctl reload nginx
    ```
 
@@ -292,6 +311,35 @@ cd server
 docker-compose -f docker-compose.prod.yml down
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
+
+**Nginx showing default welcome page:**
+1. Disable default site:
+   ```bash
+   sudo rm /etc/nginx/sites-enabled/default
+   ```
+
+2. Ensure meshmap site is enabled:
+   ```bash
+   ls -la /etc/nginx/sites-enabled/meshmap
+   # Should show a symlink to /etc/nginx/sites-available/meshmap
+   ```
+
+3. Check which site nginx is using:
+   ```bash
+   sudo nginx -T | grep "server_name"
+   ```
+
+4. Verify app is running:
+   ```bash
+   curl http://localhost:3000
+   # Should return HTML, not connection refused
+   ```
+
+5. Test and reload:
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
 
 **Nginx not working:**
 ```bash

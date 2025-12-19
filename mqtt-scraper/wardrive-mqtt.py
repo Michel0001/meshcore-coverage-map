@@ -46,10 +46,12 @@ def is_valid_location(lat: float, lon: float):
     print(f"Invalid position data {(lat, lon)}")
     return False
 
-  distance = haversine(CENTER_POSITION, (lat, lon), unit=Unit.MILES) 
-  if (distance > VALID_DIST):
-    print(f"{(lat, lon)} distance {distance} exceeds max distance")
-    return False
+  # Skip distance check if valid_dist is 0 or less (no limit)
+  if (VALID_DIST > 0):
+    distance = haversine(CENTER_POSITION, (lat, lon), unit=Unit.MILES) 
+    if (distance > VALID_DIST):
+      print(f"{(lat, lon)} distance {distance} exceeds max distance")
+      return False
 
   return True
 

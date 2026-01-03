@@ -614,6 +614,7 @@ function buildIndexes(nodes) {
     if (c.rcv === undefined && c.heard !== undefined) {
       c.rcv = c.heard;
     }
+    // snr and rssi are already on c from backend and will be preserved when set in map
     hashToCoverage.set(c.id, c);
   });
 
@@ -634,6 +635,8 @@ function buildIndexes(nodes) {
         lost: sampleLost,
         time: s.time || 0,
         rptr: (s.path || s.rptr) ? [...(s.path || s.rptr)] : [],
+        snr: (s.snr !== null && s.snr !== undefined) ? s.snr : undefined,
+        rssi: (s.rssi !== null && s.rssi !== undefined) ? s.rssi : undefined,
       };
       hashToCoverage.set(key, coverage);
     } else {
@@ -653,6 +656,17 @@ function buildIndexes(nodes) {
             coverage.rptr.push(rLower);
           }
         });
+      }
+      // Merge snr/rssi - use max value (same logic as backend)
+      if (s.snr !== null && s.snr !== undefined) {
+        coverage.snr = (coverage.snr === null || coverage.snr === undefined) 
+          ? s.snr 
+          : Math.max(coverage.snr, s.snr);
+      }
+      if (s.rssi !== null && s.rssi !== undefined) {
+        coverage.rssi = (coverage.rssi === null || coverage.rssi === undefined) 
+          ? s.rssi 
+          : Math.max(coverage.rssi, s.rssi);
       }
     }
   });

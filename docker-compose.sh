@@ -11,10 +11,26 @@ if [ ! -f "server/.env" ]; then
     exit 1
 fi
 
-# Source server/.env and export all variables for Docker Compose variable substitution
+# Safely load server/.env and export all variables for Docker Compose variable substitution
 # Docker Compose variable substitution only reads from shell environment or root .env file
+# We parse the file manually to avoid issues with values starting with dashes or containing special characters
 set -a
-source server/.env
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines and comments
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    
+    # Parse KEY=VALUE pairs
+    if [[ "$line" =~ ^[[:space:]]*([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+        # Remove any trailing comments from value
+        value="${value%%#*}"
+        # Trim trailing whitespace
+        value="${value%"${value##*[![:space:]]}"}"
+        # Export the variable safely
+        export "${key}=${value}"
+    fi
+done < "server/.env"
 set +a
 
 # Run docker-compose with the environment variables loaded

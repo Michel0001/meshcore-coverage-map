@@ -186,5 +186,6 @@ module.exports = {
   and,
   getCenterPos,
   getMaxDistanceMiles,
+  getInitialZoom,
 };
 

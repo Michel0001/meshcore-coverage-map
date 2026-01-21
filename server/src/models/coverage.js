@@ -351,7 +351,6 @@ async function mergeCoverage(geohash, samples, cutoffTime = 0) {
 
 async function getRecentGeohashes(lookBackDays) {
   const cutoffTime = Date.now() - (lookBackDays * 24 * 60 * 60 * 1000);
-  console.log(cutoffTime);
   // Get from coverage table
   const coverageResult = await pool.query(
     'SELECT geohash FROM coverage WHERE last_heard >= $1',

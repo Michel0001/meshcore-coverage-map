@@ -504,7 +504,7 @@ async function ensureWardriveChannel() {
 }
 
 // --- Ping logic ---
-async function listenForRepeat(message, timeoutMs = 5000) {
+async function listenForRepeat(message, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     const on = e => {
       const detail = e.detail;

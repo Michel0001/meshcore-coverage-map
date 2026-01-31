@@ -620,9 +620,15 @@ async function sendPing({ auto = false } = {}) {
 
   let repeat = null;
   if (sentToMesh) {
+    setStatus(auto ? "Auto ping sent" : "Ping sent", "text-amber-300");
     try {
       repeat = await listenForRepeat(text);
       log(`Heard repeat from ${repeat.repeater}`);
+      if (repeat) {
+        setStatus("Ping received", "text-emerald-300");
+      } else {
+        setStatus("Ping not received", "text-red-300");
+      }
     } catch {
       log("Didn't hear a repeat in time, assuming lost.");
     }
@@ -688,6 +694,9 @@ async function sendPing({ auto = false } = {}) {
 
     addCoverageBox(coverageTileId);
     addPingHistory(ping);
+    if (!ping.heard && ping.observed) {
+      setStatus("Ping observed", "text-amber-300");
+    }
   }, 2500);
 
   // Log result.
@@ -703,10 +712,6 @@ async function sendPing({ auto = false } = {}) {
   };
 
   addLogEntry(entry);
-
-  if (sentToMesh) {
-    setStatus(auto ? "Auto ping sent" : "Ping sent", "text-emerald-300");
-  }
 }
 
 // --- Auto mode ---

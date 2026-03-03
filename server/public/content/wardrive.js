@@ -504,7 +504,7 @@ async function ensureWardriveChannel() {
 }
 
 // --- Ping logic ---
-async function listenForRepeat(message, timeoutMs = 5000) {
+async function listenForRepeat(message, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     const on = e => {
       const detail = e.detail;
@@ -620,7 +620,7 @@ async function sendPing({ auto = false } = {}) {
 
   let repeat = null;
   if (sentToMesh) {
-    setStatus(auto ? "Auto ping sent" : "Ping sent", "text-emerald-300");
+    setStatus(auto ? "Auto ping sent" : "Ping sent", "text-amber-300");
     try {
       repeat = await listenForRepeat(text);
       log(`Heard repeat from ${repeat.repeater}`);
